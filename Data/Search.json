@@ -1,0 +1,49 @@
+{
+  "query": {
+        "type": "group",
+        "logical_operator": "and",
+        "nodes": [
+            {
+                "type": "terminal",
+                "service": "text",
+                "parameters": {
+                    "operator": "exact_match",
+                    "value": "Protein",
+	                "attribute": "entity_poly.rcsb_entity_polymer_type"
+                }
+            },
+            {
+                "type": "terminal",
+                "service": "text",
+                "parameters": {
+	                "operator": "exact_match",
+                    "negation": true,
+                    "value": "THEORETICAL MODEL",
+	                "attribute": "exptl.method"
+                }
+            },
+            {
+                "type": "terminal",
+                "service": "text",
+                "parameters": {
+                    "operator": "contains_phrase",
+                    "value": "",
+	                "attribute": "struct_keywords.pdbx_keywords"
+                }
+            },
+            {
+                "type": "terminal",
+                "service": "text",
+                "parameters": {
+                    "operator": "less_or_equal",
+                    "value": 2.5,
+                    "attribute": "rcsb_entry_info.resolution_combined"
+                }
+            }
+        ]
+  },
+  "request_options": {
+    "return_all_hits": true
+  },
+  "return_type": "entry"
+}
