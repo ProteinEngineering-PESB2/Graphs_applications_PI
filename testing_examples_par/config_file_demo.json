@@ -1,0 +1,6 @@
+{
+    "pdb_input" : "/home/dmedina/Escritorio/Graphs_applications_PI/testing_examples_par/1aq2.pdb",
+    "distance" : "euclidean",
+    "granularity": "coarse",
+    "name_output": "/home/dmedina/Escritorio/Graphs_applications_PI/testing_examples_par/distance_for_1AQ2.csv"
+}
