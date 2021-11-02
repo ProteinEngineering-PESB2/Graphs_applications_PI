@@ -36,9 +36,52 @@
                 "service": "text",
                 "parameters": {
                     "operator": "less_or_equal",
-                    "value": 2.5,
+                    "value": 3,
                     "attribute": "rcsb_entry_info.resolution_combined"
                 }
+            },
+            {
+                "type": "terminal",
+                "service": "text",
+                "parameters": {
+                    "operator": "greater_or_equal",
+                    "value": 150,
+                    "attribute": "entity_poly.rcsb_sample_sequence_length"
+                }
+            },
+            {
+                "type": "terminal",
+                "service": "text",
+                "parameters": {
+                    "operator": "less_or_equal",
+                    "value": 1000,
+                    "attribute": "entity_poly.rcsb_sample_sequence_length"
+                }
+            },
+            {
+                "type": "group",
+                "logical_operator": "and",
+                "label": "nested-attribute",
+                "nodes": [
+                    {
+                        "type": "terminal",
+                        "service": "text",
+                        "parameters": {
+                            "attribute": "rcsb_polymer_instance_annotation.annotation_lineage.name",
+                            "operator": "exact_match",
+                            "value": ""
+                        }
+                    },
+                    {
+                        "type": "terminal",
+                        "service": "text",
+                        "parameters":{
+                            "operator": "exact_match",
+                            "attribute": "rcsb_polymer_instance_annotation.type",
+                            "value": "SCOP"
+                        }
+                    }
+                ]
             }
         ]
   },

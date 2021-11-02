@@ -38,7 +38,7 @@ def RCSB_Search(s, Query):
     return response
 
 
-def Create_Dict(File, Name, Dict):
+def Create_Dict(File, Protein_type, Structure_type, Dict):
     '''Procesa los resultados de la consulta realizada a RCSB,
     asociando una lista de ids con su categoria correspondiente,
     actualizando un diccionario con estos datos.
@@ -65,11 +65,12 @@ def Create_Dict(File, Name, Dict):
             List.append(protein['identifier'])
 
     # Actualizando el diccionario
-    Dict.update({Name: List})
+    Dict[Protein_type].update({Structure_type: List})
 
 
 # Abriendo el archivo que contiene las categorias funcionales
-df = pd.read_csv('Categorias.csv', header=0, dtype='str')
+protein_categories = pd.read_csv('Categorias.csv', header=0, dtype='str')
+structural_categories = pd.read_csv('SCOP_Classification.csv', header=0, dtype='str')
 
 # Creando la sesion
 s = requests.session()
@@ -83,10 +84,14 @@ Search = json.loads(content)
 Clasificacion = {}
 
 # Filtrando segun las distintas clasificaciones
-for index, row in df.iterrows():
-    Search['query']['nodes'][2]['parameters']['value'] = row['CATEGORIA']
-    result = RCSB_Search(s, Search)
-    Create_Dict(result, row['CATEGORIA'], Clasificacion)
+for index_prot, row_prot in protein_categories.iterrows():
+    Search['query']['nodes'][2]['parameters']['value'] = row_prot['CATEGORIA']
+    Clasificacion.update({row_prot['CATEGORIA']: {}})
+    
+    for index_str, row_str in structural_categories.iterrows():
+        Search['query']['nodes'][6]['nodes'][0]['parameters']['value'] = row_str['SCOP']
+        result = RCSB_Search(s, Search)
+        Create_Dict(result, row_prot['CATEGORIA'], row_str['SCOP'], Clasificacion)
 
 # Creando archivo .json para guardar la clasifiacion
 with open('Resultados.json', 'w') as fp:
