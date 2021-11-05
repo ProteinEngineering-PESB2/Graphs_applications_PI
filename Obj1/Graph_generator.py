@@ -1,36 +1,14 @@
 # Importing libraries
 import pandas as pd
+import json
 import networkx as nx
 import numpy as np
 import sys, getopt
 import textwrap
 import os.path
 
-def calculate_upper(data, option, percent):
-    '''Calcula el limite superior para considerar las distancias.
 
-    Parametros:
-    data  -- Dataframe
-             Set de datos sobre el que se calcula el parametro deseado.
-    option  -- String
-               Método a utilizar.
-    percent  -- Int
-                Porcentaje a considerar para el metodo del percentil.
-
-    Retorna:
-            Float
-            Limite superior a considerar.
-    '''
-    if option == 'mean':
-        upper = np.mean(data) - np.std(data)
-
-    elif option == 'percentile':
-        upper = np.percentile(data, percent)
-    
-    return upper
-
-
-def generate_graph(file, option, percent, path):
+def generate_graph(adjaceny_file, nodes_file, path):
     '''Crea una grafo a partir de una lista de adyacencia,
     considerando un limite superior para los pesos. En el 
     caso de que se usen interacciones como pesos se recomienda
@@ -38,51 +16,69 @@ def generate_graph(file, option, percent, path):
     con un porcentaje de 100.
 
     Parametros:
-    file  -- String
-             Nombre del archivo que la lista de adjacencia.
-    option  -- String
-               Metodo con el que se calculara el limite superior.
-    percent  -- Int
-                Porcentaje a considerar para el metodo del percentil.
-    path  -- String
-             Path para guardar el archivo.
+    adjaceny_file  -- String
+                      Nombre del archivo que posee la lista de adjacencia.
+    nodes_file     -- String
+                      Nombre del archivo que posee la lista de nodos.
+    path           -- String
+                      Path para guardar el archivo.
 
     Retorna:
             None
             Genera archivo gpickle con el grafo.
     '''
     # Reading the adjacency list with pandas
-    df = pd.read_csv(file, header=0)
-    df.dropna(inplace=True)
+    df_edges = pd.read_csv(adjaceny_file, header=0)
+
+    # Reading the node list with pandas
+    df_nodes = pd.read_csv(nodes_file, header=0)
 
     # Creating graph
-    G = nx.Graph()
+    graph = nx.Graph()
 
-    # Calculating upper threshold
-    upper = calculate_upper(df['Weight'], option, percent)
+    # Adding nodes
+    for index, row in df_nodes.iterrows():
+        graph.add_node(row['Node'])
 
-    # Iterating over rows
-    for index, row in df.iterrows():
-        Weight = row['Weight']
-        if Weight <= upper:
-            G.add_edge(row['Node_1'], row['Node_2'], weight=row['Weight'])
-        else:
-            G.add_node(row['Node_1'])
-            G.add_node(row['Node_2'])
-    
+    # Adding edges
+    for index, row in df_edges.iterrows():
+        graph.add_edge(row['Node_1'], row['Node_2'], weight=row['Weight'])
+
     # Saving the graph
-    code = file[-8:-4]
-    file_name = 'graph_' + code + '.gpickle'
-    nx.write_gpickle(G, path + file_name)
+    code = adjaceny_file[-8:-4]
+
+    if adjaceny_file.find('euclidean') != -1:
+        distance = 'euclidean_'
+    
+    elif adjaceny_file.find('cosine') != -1:
+        distance = 'cosine_'
+    
+    else:
+        distance = 'correlation_'
+
+    if adjaceny_file.find('residues') != -1:
+        file_name = path + 'graph_residues_' + distance + code
+    
+    elif adjaceny_file.find('interactions') != -1:
+        file_name = path + 'graph_interactions_' + code
+    
+    else:
+        file_name = path + 'graph_atoms_' + distance + code
+
+    nx.write_gpickle(graph + '.gpickle', file_name)
+
+    # Create json that save statistics
+    Info = {'File_name': file_name,
+            'Nodes': graph.number_of_nodes,
+            'Edges': graph.number_of_edges}
+
+    # Saving json
+    with open(file_name + '.json', 'w') as fp:
+        json.dump(Info, fp)
 
 
 # Function parameters
-Params = dict(OPTION = 'percentile',
-              NUMBER = 25,
-              PATH = '')
-
-# Allowed values
-Allowed_options = ['mean', 'percentile']
+Params = dict(PATH = '')
 
 
 def printUsage():
@@ -90,41 +86,22 @@ def printUsage():
     print('Usage: ' +sys.argv[0] + ' [OPTIONS]')
     print(textwrap.dedent("""
         -h, --help            : This text.
-        -o, --option <VALUE>  : Method to calculate the upper threshold. Allowed values 'mean', 'percentile'. 
-                                Default value 'percentile'.
-        -n, --number <VALUE>  : Number of percentile. Allowed values go from 0 to 100. Default value 25.
         -p, --path <VALUE>    : relative path where the csv will be saved. Default value '' (save in the current path).
 
         Ejemplo de uso:
-        python Graph_generator.py nombre_de_archivo -n 10
+        python Graph_generator.py nombre_de_lista_de_adyacencia nombre_de_lista_de_nodos -p ../
         """))
 
 
 def main(argv):
 
     try:
-        opts, args = getopt.getopt(argv,"ho:n:p:",["help","option=","number=","path="])
+        opts, args = getopt.getopt(argv,"hp:",["help","path="])
         for opt, arg in opts:
 
             if opt in ("-h", "--help"):
                 printUsage()
                 sys.exit()
-
-            elif opt in ("-o", "--option"):
-                if arg in Allowed_options:
-                    Params['OPTION'] = arg
-                else:
-                    print('Option not allowed')
-                    printUsage()
-                    sys.exit(1)
-
-            elif opt in ("-n", "--number"):
-                if int(arg) >= 0 and int(arg) <= 100:
-                    Params['NUMBER'] = int(arg)
-                else:
-                    print('Percentil not allowed')
-                    printUsage()
-                    sys.exit(1)
 
             elif opt in ("-p", "--path"):
                 if os.path.exists(arg):
@@ -141,8 +118,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[2:])
-    generate_graph(sys.argv[1], Params['OPTION'], Params['NUMBER'],
-                   Params['PATH'])
+    main(sys.argv[3:])
+    generate_graph(sys.argv[1], sys.argv[2], Params['PATH'])
 
 sys.exit()
