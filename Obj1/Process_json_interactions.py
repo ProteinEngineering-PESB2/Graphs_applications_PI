@@ -27,7 +27,9 @@ def process_json(File, path):
                         inter['member2']['info_residue']['chain'])
                 weight = inter['value_interaction']
                 row = {'Node_1': res_1, 'Node_2': res_2, 'Weight': weight}
+                row_2 = {'Node_1': res_2, 'Node_2': res_1, 'Weight': weight}
                 df = df.append(row, ignore_index=True)
+                df = df.append(row_2, ignore_index=True)
 
         Name =  path + 'adjacency_list_interactions_' + code
         df.to_csv(Name + '.csv', index=False)
